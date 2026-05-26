@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lecture AI Notebook - 未来の講義文字起こし＆要約ノート</title>
+  <meta name="description" content="AIが講義音声を高精度に文字起こしし、洗練された要約ノートを瞬時に作成するサーバーレスWebアプリケーション。">
+  
+  <!-- Google Fonts: モダンで知的なタイポグラフィ -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons: 洗練されたSVGアイコン -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Marked.js: マークダウンを美しくデジタルノート風にレンダリングするライブラリ -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+  <!-- 近未来的オーロラ背景エフェクト -->
+  <div class="aurora-bg"></div>
+
+  <div class="app-container">
+    <!-- ヘッダー -->
+    <header class="app-header" role="banner">
+      <div class="brand">
+        <div class="logo-icon">
+          <i data-lucide="sparkles"></i>
+        </div>
+        <div class="brand-text">
+          <h1 id="app-title">Lecture AI Notebook</h1>
+          <p class="tagline">スマートな講義音声のテキスト化＆要約ノート</p>
+        </div>
+      </div>
+      
+      <!-- 設定ボタン (APIキー用) -->
+      <button id="btn-settings" class="icon-btn" aria-label="APIキー設定を開く" title="設定">
+        <i data-lucide="settings"></i>
+      </button>
+    </header>
+
+    <!-- APIキー設定パネル (トグル式) -->
+    <section id="panel-settings" class="settings-panel hidden" aria-labelledby="settings-title">
+      <div class="panel-header">
+        <h2 id="settings-title"><i data-lucide="key-round"></i> Gemini APIキーの設定</h2>
+        <button id="btn-close-settings" class="close-btn" aria-label="設定を閉じる">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="panel-body">
+        <p class="settings-desc">
+          このアプリは直接Google Gemini APIと通信します。入力されたキーはあなたのブラウザのみに安全に保存され、外部のサーバー等に送信されることは一切ありません。
+        </p>
+        <div class="input-group">
+          <input type="password" id="input-api-key" placeholder="AI Studioで取得した API キーを入力..." aria-label="APIキー入力欄">
+          <button id="btn-save-key" class="primary-btn">保存する</button>
+        </div>
+        <div id="key-status-msg" class="status-msg"></div>
+      </div>
+    </section>
+
+    <!-- メインコンテンツグリッド -->
+    <main class="main-content">
+      
+      <!-- 左：操作・ファイル投入エリア -->
+      <section class="control-section">
+        <div class="card card-upload">
+          <div class="card-header">
+            <h2><i data-lucide="file-audio"></i> 音声ファイルの読み込み</h2>
+            <span class="badge">極小インライン形式</span>
+          </div>
+          
+          <!-- ドラッグ＆ドロップゾーン -->
+          <div id="drop-zone" class="drop-zone">
+            <input type="file" id="file-input" accept="audio/*" class="file-input-hidden" aria-label="音声ファイルを選択する">
+            <div class="drop-zone-content">
+              <div class="drop-icon">
+                <i data-lucide="upload-cloud"></i>
+              </div>
+              <p class="main-instructions">ファイルをここにドラッグ＆ドロップ</p>
+              <p class="sub-instructions">または <span class="browse-link">ブラウザから選択</span></p>
+              <p class="file-limits">最大サイズ: 15 MB | MP3, WAV, AAC, FLAC</p>
+            </div>
+          </div>
+
+          <!-- 選択中ファイル表示 -->
+          <div id="selected-file-card" class="selected-file-card hidden">
+            <div class="file-info">
+              <div class="file-icon"><i data-lucide="music"></i></div>
+              <div class="file-details">
+                <p id="file-name" class="file-name">filename.mp3</p>
+                <p id="file-size" class="file-size">2.4 MB</p>
+              </div>
+            </div>
+            <button id="btn-remove-file" class="remove-btn" aria-label="ファイルをクリアする">
+              <i data-lucide="trash-2"></i>
+            </button>
+          </div>
+
+          <!-- アクション実行エリア -->
+          <div class="action-area">
+            <button id="btn-generate" class="action-btn glow-btn" disabled>
+              <i data-lucide="wand-2"></i> ノートを生成する
+            </button>
+          </div>
+        </div>
+
+        <!-- 処理中ステータス (波形アニメーション) -->
+        <div id="processing-card" class="card card-processing hidden">
+          <div class="processing-content">
+            <div class="waveform">
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+            </div>
+            <h3>Gemini AIが音声を聴き取っています...</h3>
+            <p>音声データを安全に解析し、文字起こしと要約ノートを作成中です。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右：生成ノート結果表示エリア -->
+      <section class="result-section">
+        <div class="card card-notebook">
+          <div class="notebook-tabs">
+            <button id="tab-summary" class="tab-btn active" data-tab="summary">
+              <i data-lucide="book-open"></i> 要約ノート
+            </button>
+            <button id="tab-transcript" class="tab-btn" data-tab="transcript">
+              <i data-lucide="align-left"></i> 全文文字起こし
+            </button>
+          </div>
+
+          <div class="notebook-body">
+            <!-- 要約ノートパネル -->
+            <div id="panel-summary" class="notebook-panel active">
+              <div class="panel-action-bar">
+                <span class="panel-title-hint">AIが整理した講義の要点</span>
+                <button id="btn-copy-summary" class="copy-btn" title="要約をコピー">
+                  <i data-lucide="copy"></i> コピー
+                </button>
+              </div>
+              <div id="output-summary" class="notebook-paper markdown-body">
+                <!-- 初期表示プレースホルダー -->
+                <div class="notebook-placeholder">
+                  <i data-lucide="edit-3"></i>
+                  <p>音声ファイルを読み込み、「ノートを生成する」をクリックしてください。</p>
+                  <p class="sub">マークダウン形式で美しく整理された要約ノートがここに生成されます。</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 全文文字起こしパネル -->
+            <div id="panel-transcript" class="notebook-panel">
+              <div class="panel-action-bar">
+                <span class="panel-title-hint">一言一句の正確なトランスクリプト</span>
+                <button id="btn-copy-transcript" class="copy-btn" title="文字起こしをコピー">
+                  <i data-lucide="copy"></i> コピー
+                </button>
+              </div>
+              <div id="output-transcript" class="notebook-paper">
+                <!-- 初期表示プレースホルダー -->
+                <div class="notebook-placeholder">
+                  <i data-lucide="mic"></i>
+                  <p>文字起こしされた講義の全文がここに表示されます。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- フッター -->
+    <footer class="app-footer" role="contentinfo">
+      <p>© 2026 Lecture AI Notebook | Minimal Friction Architecture</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
